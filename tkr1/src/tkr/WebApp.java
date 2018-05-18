@@ -32,6 +32,7 @@ public class WebApp extends HttpServlet {
 	 */
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 
+		// GitHubへの登録
         //Query Stringからパラメータを取得
         String strQueryData01 = request.getParameter("Data01");
 
