@@ -62,15 +62,12 @@ public class WebApp extends HttpServlet {
             request.setAttribute("Hostname", hostname);
             
             //画面表示
-            System.out.println("IPアドレス：" + ip);
-            System.out.println("ホスト名：" + hostname);
+            System.out.println("IPaddr: " + ip);
+            System.out.println("Hostname: " + hostname);
 
         } catch (Exception e) {
             e.printStackTrace();
         }
-        
-        
-        
         
         //JSP呼び出し
         RequestDispatcher requestDispatcher = request.getRequestDispatcher("top.jsp");
