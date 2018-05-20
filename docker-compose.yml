@@ -1,0 +1,28 @@
+version: '3'
+services:
+    websphere:
+        image: websphere-liberty:webProfile7
+        volumes:
+            - ./config:/config
+            - ./db2:/opt/ibm/db2
+        environment:
+            - DB_USER=root
+            - DB_PASSWORD=xxx
+        ports:
+            - "9080:9080"
+        links:
+            - db2
+        depends_on:
+            - db2
+    db2:
+        image: ibmcom/db2express-c
+        container_name: db2
+        volumes:
+            - ./sql:/share
+        environment:
+            - DB2INST1_PASSWORD=db2inst1-pwd
+            - LICENSE=accept
+        ports:
+            - "50000:50000"
+        command: >
+          db2start

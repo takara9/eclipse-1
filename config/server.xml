@@ -5,9 +5,11 @@
       <feature>webProfile-7.0</feature>      
       <feature>sessionDatabase-1.0</feature>
     </featureManager>
+
     <httpEndpoint httpPort="9080" httpsPort="-1" id="defaultHttpEndpoint" host="*" />
     <applicationManager autoExpand="true"/>
     <applicationMonitor updateTrigger="mbean"/>
+
     <!-- DB2 session database-->
     <library id="DB2JCC4Lib">
        <fileset dir="/opt/ibm/db2" includes="db2jcc4.jar"/>

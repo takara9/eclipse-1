@@ -1,30 +1,79 @@
 # Liberty & Db2 express-c
 
 
-https://hub.docker.com/_/websphere-liberty/
 
-https://hub.docker.com/r/ibmcom/db2express-c/
 
+
+## 利用するコンテナ
+
+WebSphere Libery と Db2 Express Community Edition を利用します。
+
+* https://hub.docker.com/_/websphere-liberty/
+* https://hub.docker.com/r/ibmcom/db2express-c/
+
+
+
+## Db2 JDBCドライバーのダウンロード
+
+
+次のページから、JDBCドライバをダウンロードします。 IBM IDの登録が必要になりますので、IBM IDを持っていなければ、ダウンロード・ページのリンクから、IBM IDを取得してください。
+
+https://www-01.ibm.com/marketing/iwm/iwm/web/reg/download.do?source=swg-idsdjs&S_PKG=dl&lang=ja_JP&cp=UTF-8&dlmethod=http
+
+ダウンロードしたファイルの圧縮を解いて、db2jcc.jar と db2jcc4.jar を db2のディレクトの下にコピーします。
+
+
+
+## dockerコマンドから起動方法
 
 ~~~
-$ docker run -d -p 9080:9080 -v /Users/maho/docker/java/config:/config -v /Users/maho/docker/java/db2:/opt/ibm/db2 --link db2 websphere-liberty:webProfile7
+$ docker run -d --rm -p 9080:9080 -v /Users/maho/docker/java/config:/config -v /Users/maho/docker/java/db2:/opt/ibm/db2 --link db2 websphere-liberty:webProfile7
 ~~~
 
+
+MacOSのコンテナホストのファイルシステムにテーブルスペースを作れない制限があるので、データベースのテーブルスペースのコンテナ領域は、コンテナ内部に持たせるため、次の様に起動する
+
 ~~~
-docker run --name db2 -p 50000:50000  -e DB2INST1_PASSWORD=db2inst1-pwd -e LICENSE=accept  -d ibmcom/db2express-c db2start
-or
-
-docker run -d --rm --name db2 -p 50000:50000  -e DB2INST1_PASSWORD=db2inst1-pwd -e LICENSE=accept -v /Users/maho/docker/java/db2inst1:/tablespace -v /Users/maho/git/tkr1/sql:/share  ibmcom/db2express-c db2start
-
-docker run -d --rm --name db2 -p 50000:50000  -e DB2INST1_PASSWORD=db2inst1-pwd -e LICENSE=accept -v /Users/maho/git/tkr1/sql:/share  ibmcom/db2express-c db2start
+$ docker run -d --rm --name db2 -p 50000:50000  -e DB2INST1_PASSWORD=db2inst1-pwd -e LICENSE=accept -v /Users/maho/git/tkr1/sql:/share  ibmcom/db2express-c db2start
 ~~~
 
-コンテナホストのボリュームにテーブルスペースを作れない
 
 
+
+## docker-compose から起動方法
+
+docker-compose.ymlの存在するディレクトリから、次の様に起動する。
+
+~~~
+docker-compose up -d
+~~~
+
+一時停止と再開
+
+~~~
+docker-compose stop
+docker-compose start
+~~~
+
+クリーンナップ（コンテナまで）
+
+~~~
+docker-compose down
+~~~
+
+クリーンナップ（コンテナイメージまで）
+
+~~~
+docker-compose down --rmi all
+~~~
 
 
 ## セッションテーブルのセットアップ
+
+db2express-cの公式コンテナの起動時に、データベースの作成および初期化の機能が実装されていなかったために、手作業で実施する。
+
+
+コンテナIDを調べ、コンテナに対話型シェルを起動する
 
 ~~~
 imac:java maho$ docker ps
@@ -33,9 +82,16 @@ CONTAINER ID        IMAGE                           COMMAND                  CRE
 bece6b74d717        ibmcom/db2express-c             "/entrypoint.sh db2s…"   16 hours ago        Up 16 hours         22/tcp, 0.0.0.0:50000->50000/tcp   db2
 
 imac:java maho$ docker exec -it bece6b74d717 bash
+~~~
+
+テーブルスペース用のディレクトリを作成して、データベースを作成して、接続する。
+
+~~~
+[root@bece6b74d717 /]# mkdir /tablespace
+[root@bece6b74d717 /]# chown db2inst1:db2inst1 /tablespace
 [root@bece6b74d717 /]# su - db2inst1
 Last login: Fri May 18 11:47:20 UTC 2018 on pts/0
-[db2inst1@bece6b74d717 ~]$ db2 create db session
+[db2inst1@bece6b74d717 ~]$ db2 create db session on /tablespace
 [db2inst1@bece6b74d717 ~]$ db2 connect to session
 
    Database Connection Information
@@ -43,10 +99,12 @@ Last login: Fri May 18 11:47:20 UTC 2018 on pts/0
  Database server        = DB2/LINUXX8664 10.5.5
  SQL authorization ID   = DB2INST1
  Local database alias   = SESSION
+~~~
 
+WebSphereのセッション管理用のテーブルを作成する。
 
-[db2inst1@bece6b74d717 ~]$ db2 -tf create_session_table.sql
-
+~~~
+[db2inst1@bece6b74d717 ~]$ db2 -tf /share/create_session_table.sql
 [db2inst1@bece6b74d717 ~]$ db2 list tables;
 
 Table/View                      Schema          Type  Creation time             
@@ -54,15 +112,30 @@ Table/View                      Schema          Type  Creation time
 SESSIONS                        DB2INST1        T     2018-05-18-11.40.56.979113
 
   1 record(s) selected.
+~~~
 
-[db2inst1@bece6b74d717 ~]$ db2 describe table sessions;
 
-[db2inst1@bece6b74d717 ~]$ db2 select id, appname from sessions
+その他、確認用コマンド
 
-[db2inst1@bece6b74d717 ~]$ db2 list tablespaces
-
-[db2inst1@bece6b74d717 ~]$ db2 list tablespace containers for 1
+* セッション管理用テーブルの構造表示
+* セッション管理テーブルのSELECT
+* テーブルスペースのリスト
+* テーブルスペースのコンテナ１の詳細（パス等）の表示
 
 ~~~
+$ db2 describe table sessions;
+
+$ db2 select id, appname from sessions
+
+$ db2 list tablespaces
+
+$ db2 list tablespace containers for 1
+~~~
+
+
+## WebSphereリバティのアプリのデプロイ
+
+* WebSphereの設定変更は、config/server.xmlを編集する
+* アプリケーションのデプロイは、config/dropins下へ war または ear ファイルをコピーする
 
 
