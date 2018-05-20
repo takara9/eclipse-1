@@ -68,6 +68,79 @@ docker-compose down --rmi all
 ~~~
 
 
+
+## Kubernetesからの起動方法
+
+minikubeがインストールされている事を前提にします。
+
+minikubeを起動して、kubectl コマンドが利用できることを確認します。
+
+~~~
+$ minikube start
+There is a newer version of minikube available (v0.27.0).  Download it here:
+https://github.com/kubernetes/minikube/releases/tag/v0.27.0
+
+To disable this notification, run the following:
+minikube config set WantUpdateNotification false
+Starting local Kubernetes v1.10.0 cluster...
+Starting VM...
+Getting VM IP address...
+Moving files into cluster...
+Setting up certs...
+Connecting to cluster...
+Setting up kubeconfig...
+Starting cluster components...
+Kubectl is now configured to use the cluster.
+Loading cached images from config file.
+
+$ kubectl get node
+NAME       STATUS    ROLES     AGE       VERSION
+minikube   Ready     master    46s       v1.10.0
+~~~
+
+## DB2の起動
+
+コンフィグマップの設定として、sqlディレクトリをConfigMapへ設定する
+
+~~~
+$ kubectl create configmap sql-files --from-file=sql
+$ kubectl get configmap
+$ kubectl describe configmap sql-files
+~~~
+
+~~~
+kubectl apply -f k8s-db2.yml
+~~~
+
+configMapは、1Mバイドまでのサイズ制限がありますから、アプリとDB2ドライバが含まれたコンテナをビルドして、Docker Hubへ登録して利用します。
+
+~~~
+docker built -t java-apl-1st:0.1 -f Dockerfile.was .
+~~~
+
+ローカルでのテスト実行
+
+~~~
+docker run -d --rm -p 9080:9080 --link db2 java-apl-1st:0.1
+~~~
+
+~~~
+docker login
+docker tag java-apl-1st:0.1 (docker hub username)/java-apl-1st:0.1
+docker push (docker hub username)/java-apl-1st:0.1
+~~~
+
+
+
+~~~
+kubectl apply -f k8s-was.yml
+~~~
+
+
+
+
+# WebSphereリバティの環境セットアップ
+
 ## セッションテーブルのセットアップ
 
 db2express-cの公式コンテナの起動時に、データベースの作成および初期化の機能が実装されていなかったために、手作業で実施する。

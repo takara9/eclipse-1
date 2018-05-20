@@ -1,0 +1,46 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: db2
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: db2
+    spec:
+      containers:
+      - name: db2
+        image: ibmcom/db2express-c
+        ports:
+        - containerPort: 50000
+        command: ["/bin/bash"]
+        args: ["/entrypoint.sh", "db2start"]
+        env:
+        - name: DB2INST1_PASSWORD
+          value: db2inst1-pwd
+        - name: LICENSE
+          value: accept
+        volumeMounts:
+        - name: ts-vol
+          mountPath: /tablespace
+        - name: config-vol
+          mountPath: /share
+      volumes:
+      - name: ts-vol
+        emptyDir: {}
+      - name: config-vol
+        configMap:
+          name: sql-files
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: db2
+spec:
+  selector:
+    app: db2
+  ports:
+  - protocol: TCP
+    port: 50000
+    targetPort: 50000

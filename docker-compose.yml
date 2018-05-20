@@ -5,9 +5,6 @@ services:
         volumes:
             - ./config:/config
             - ./db2:/opt/ibm/db2
-        environment:
-            - DB_USER=root
-            - DB_PASSWORD=xxx
         ports:
             - "9080:9080"
         links:
